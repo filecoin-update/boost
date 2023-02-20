@@ -333,6 +333,10 @@ func NewFundsDB(sqldb *sql.DB) *db.FundsDB {
 	return db.NewFundsDB(sqldb)
 }
 
+func NewSectorStateDB(sqldb *sql.DB) *db.SectorStateDB {
+	return db.NewSectorStateDB(sqldb)
+}
+
 func HandleLegacyDeals(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, lsp lotus_storagemarket.StorageProvider, j journal.Journal) error {
 	log.Info("starting legacy storage provider")
 	modules.HandleDeals(mctx, lc, host, lsp, j)
