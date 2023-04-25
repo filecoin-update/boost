@@ -1,7 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"golang.org/x/xerrors"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +17,27 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+func downloadFile(localPath string, remotePath string) error {
+	file, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = file.Close()
+	}()
+
+	rsp, err := http.Get(remotePath)
+	defer func() {
+		_ = rsp.Body.Close()
+	}()
+	if rsp.StatusCode != 200 {
+		return xerrors.Errorf("down file error code: %d", rsp.StatusCode)
+	}
+	_, err = io.Copy(file, rsp.Body)
+	return err
+}
+
 var importDataCmd = &cli.Command{
 	Name:      "import-data",
 	Usage:     "Import data for offline deal made with Boost",
@@ -21,7 +46,20 @@ var importDataCmd = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "delete-after-import",
 			Usage: "whether to delete the data for the offline deal after the deal has been added to a sector",
-			Value: false,
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "remote",
+			Usage: "is it a remote file",
+			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "remote-path",
+			Usage: "remote file download path",
+		},
+		&cli.StringFlag{
+			Name:  "local-path",
+			Usage: "local file path",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -30,9 +68,37 @@ var importDataCmd = &cli.Command{
 		}
 
 		id := cctx.Args().Get(0)
-		tpath := cctx.Args().Get(1)
+		fileName := cctx.Args().Get(1)
 
-		path, err := homedir.Expand(tpath)
+		localPath := cctx.String("local-path")
+		if localPath == "" {
+			return errors.New("local-path not empty")
+		}
+		if strings.HasSuffix(localPath, "/") {
+			localPath = fmt.Sprintf("%s%s", localPath, fileName)
+		} else {
+			localPath = fmt.Sprintf("%s/%s", localPath, fileName)
+		}
+
+		// 远程下载文件
+		remote := cctx.Bool("remote")
+		if remote {
+			remotePath := cctx.String("remote-path")
+			if remotePath == "" {
+				return errors.New("remote-path not empty")
+			}
+			if strings.HasSuffix(remotePath, "/") {
+				remotePath = fmt.Sprintf("%s%s", remotePath, fileName)
+			} else {
+				remotePath = fmt.Sprintf("%s/%s", remotePath, fileName)
+			}
+
+			if err := downloadFile(localPath, remotePath); err != nil {
+				return err
+			}
+		}
+
+		path, err := homedir.Expand(localPath)
 		if err != nil {
 			return fmt.Errorf("expanding file path: %w", err)
 		}
