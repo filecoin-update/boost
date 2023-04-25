@@ -31,11 +31,24 @@ func downloadFile(localPath string, remotePath string) error {
 	defer func() {
 		_ = rsp.Body.Close()
 	}()
+
 	if rsp.StatusCode != 200 {
 		return xerrors.Errorf("down file error code: %d", rsp.StatusCode)
 	}
 	_, err = io.Copy(file, rsp.Body)
 	return err
+}
+
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	//isnotexist来判断，是不是不存在的错误
+	if os.IsNotExist(err) { //如果返回的错误类型使用os.isNotExist()判断为true，说明文件或者文件夹不存在
+		return false, nil
+	}
+	return false, err //如果有错误了，但是不是不存在的错误，所以把这个错误原封不动的返回
 }
 
 var importDataCmd = &cli.Command{
@@ -82,19 +95,25 @@ var importDataCmd = &cli.Command{
 
 		// 远程下载文件
 		remote := cctx.Bool("remote")
-		if remote {
-			remotePath := cctx.String("remote-path")
-			if remotePath == "" {
-				return errors.New("remote-path not empty")
-			}
-			if strings.HasSuffix(remotePath, "/") {
-				remotePath = fmt.Sprintf("%s%s", remotePath, fileName)
-			} else {
-				remotePath = fmt.Sprintf("%s/%s", remotePath, fileName)
-			}
+		localFileExists, _ := pathExists(localPath)
+		if !localFileExists {
+			if remote {
+				remotePath := cctx.String("remote-path")
+				if remotePath == "" {
+					return errors.New("remote-path not empty")
+				}
+				if strings.HasSuffix(remotePath, "/") {
+					remotePath = fmt.Sprintf("%s%s", remotePath, fileName)
+				} else {
+					remotePath = fmt.Sprintf("%s/%s", remotePath, fileName)
+				}
 
-			if err := downloadFile(localPath, remotePath); err != nil {
-				return err
+				if err := downloadFile(localPath, remotePath); err != nil {
+					_ = os.RemoveAll(localPath)
+					return err
+				}
+			} else {
+				return errors.New("local file does not exist")
 			}
 		}
 
