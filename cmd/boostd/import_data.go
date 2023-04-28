@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/filecoin-project/boost/storagemarket"
 	"golang.org/x/xerrors"
 	"io"
 	"net/http"
@@ -31,6 +32,9 @@ func downloadFile(localPath string, remotePath string) error {
 	defer func() {
 		_ = rsp.Body.Close()
 	}()
+	if err != nil {
+		return err
+	}
 
 	if rsp.StatusCode != 200 {
 		return xerrors.Errorf("down file error code: %d", rsp.StatusCode)
@@ -179,6 +183,12 @@ var importDataCmd = &cli.Command{
 			// Get the deal UUID from the deal
 			dealUuid = deal.DealUuid
 		}
+
+		pds, err := napi.BoostDeal(cctx.Context, dealUuid)
+		if err == storagemarket.ErrDealNotFound {
+
+		}
+		pds.Checkpoint.String()
 
 		// Deal proposal by deal uuid (v1.2.0 deal)
 		rej, err := napi.BoostOfflineDealWithData(cctx.Context, dealUuid, filePath, deleteAfterImport)
