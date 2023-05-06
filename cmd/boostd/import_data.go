@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/filecoin-project/boost/storagemarket"
+	"github.com/filecoin-project/boost/storagemarket/types/dealcheckpoints"
 	"golang.org/x/xerrors"
 	"io"
 	"net/http"
@@ -97,6 +97,32 @@ var importDataCmd = &cli.Command{
 			localPath = fmt.Sprintf("%s/%s", localPath, fileName)
 		}
 
+		// Parse the first parameter as a deal UUID or a proposal CID
+		var proposalCid *cid.Cid
+		dealUuid, err := uuid.Parse(id)
+		if err != nil {
+			propCid, err := cid.Decode(id)
+			if err != nil {
+				return fmt.Errorf("could not parse '%s' as deal uuid or proposal cid", id)
+			}
+			proposalCid = &propCid
+		}
+
+		napi, closer, err := bcli.GetBoostAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		pds, err := napi.BoostDeal(cctx.Context, dealUuid)
+		if err != nil {
+			return err
+		}
+
+		if pds.Checkpoint != dealcheckpoints.Accepted {
+			return xerrors.Errorf("the order %s has been imported", dealUuid.String())
+		}
+
 		// 远程下载文件
 		remote := cctx.Bool("remote")
 		localFileExists, _ := pathExists(localPath)
@@ -136,23 +162,6 @@ var importDataCmd = &cli.Command{
 			return fmt.Errorf("opening file %s: %w", filePath, err)
 		}
 
-		// Parse the first parameter as a deal UUID or a proposal CID
-		var proposalCid *cid.Cid
-		dealUuid, err := uuid.Parse(id)
-		if err != nil {
-			propCid, err := cid.Decode(id)
-			if err != nil {
-				return fmt.Errorf("could not parse '%s' as deal uuid or proposal cid", id)
-			}
-			proposalCid = &propCid
-		}
-
-		napi, closer, err := bcli.GetBoostAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer closer()
-
 		// If the user has supplied a signed proposal cid
 		deleteAfterImport := cctx.Bool("delete-after-import")
 		if proposalCid != nil {
@@ -183,12 +192,6 @@ var importDataCmd = &cli.Command{
 			// Get the deal UUID from the deal
 			dealUuid = deal.DealUuid
 		}
-
-		pds, err := napi.BoostDeal(cctx.Context, dealUuid)
-		if err == storagemarket.ErrDealNotFound {
-
-		}
-		pds.Checkpoint.String()
 
 		// Deal proposal by deal uuid (v1.2.0 deal)
 		rej, err := napi.BoostOfflineDealWithData(cctx.Context, dealUuid, filePath, deleteAfterImport)
