@@ -171,12 +171,34 @@ func (p *Provider) execDealUptoAddPiece(ctx context.Context, deal *types.Provide
 		dh.setCancelTransferResponse(errors.New("transfer already complete"))
 		p.dealLogger.Infow(deal.DealUuid, "deal data-transfer can no longer be cancelled")
 	} else if deal.Checkpoint < dealcheckpoints.Transferred {
+		p.dealLogger.Infow(deal.DealUuid, "skip commp check",
+			"filepath", deal.InboundFilePath,
+			"PieceSize", deal.ClientDealProposal.Proposal.PieceSize,
+			"clientPieceCid", deal.ClientDealProposal.Proposal.PieceCID,
+		)
+
 		// verify CommP matches for an offline deal
-		if err := p.verifyCommP(deal); err != nil {
-			err.error = fmt.Errorf("error when matching commP for imported data for offline deal: %w", err)
-			return err
-		}
+		//if err := p.verifyCommP(deal); err != nil {
+		//	err.error = fmt.Errorf("error when matching commP for imported data for offline deal: %w", err)
+		//	return err
+		//}
 		p.dealLogger.Infow(deal.DealUuid, "commp matched successfully for imported data for offline deal")
+
+		// skip Commp
+		skipCommp := p.config.SkipCommp
+		if skipCommp {
+			p.dealLogger.Infow(deal.DealUuid, "skip commp check",
+				"filepath", deal.InboundFilePath,
+				"PieceSize", deal.ClientDealProposal.Proposal.PieceSize,
+				"clientPieceCid", deal.ClientDealProposal.Proposal.PieceCID,
+			)
+		} else {
+			if err := p.verifyCommP(deal); err != nil {
+				err.error = fmt.Errorf("error when matching commP for imported data for offline deal: %w", err)
+				return err
+			}
+			p.dealLogger.Infow(deal.DealUuid, "commp matched successfully for imported data for offline deal")
+		}
 
 		// update checkpoint
 		if derr := p.updateCheckpoint(pub, deal, dealcheckpoints.Transferred); derr != nil {

@@ -77,6 +77,7 @@ type Config struct {
 	// Cache timeout for Sealing Pipeline status
 	SealingPipelineCacheTimeout time.Duration
 	StorageFilter               string
+	SkipCommp                   bool
 }
 
 var log = logging.Logger("boost-provider")
