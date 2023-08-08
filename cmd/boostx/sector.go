@@ -34,6 +34,10 @@ var sectorUnsealCmd = &cli.Command{
 			Usage:    "the endpoint for the storage node API",
 			Required: true,
 		},
+		&cli.StringFlag{
+			Name:  "minio-endpoint",
+			Usage: "minio endpoint, use download car",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		if !cctx.Args().Present() {
@@ -58,7 +62,8 @@ var sectorUnsealCmd = &cli.Command{
 
 		// Connect to the storage API and create a sector accessor
 		storageApiInfo := cctx.String("api-storage")
-		sa, storageCloser, err := lib.CreateSectorAccessor(ctx, storageApiInfo, fullnodeApi, log)
+		minioEndpoint := cctx.String("minio-endpoint")
+		sa, storageCloser, err := lib.CreateSectorAccessor(ctx, storageApiInfo, fullnodeApi, log, minioEndpoint)
 		if err != nil {
 			return err
 		}
