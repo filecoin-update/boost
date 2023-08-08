@@ -89,7 +89,7 @@ func StorageAuthWithURL(apiInfo string) (sealer.StorageAuth, error) {
 	return sealer.StorageAuth(headers), nil
 }
 
-func CreateSectorAccessor(ctx context.Context, storageApiInfo string, fullnodeApi v1api.FullNode, log *logging.ZapEventLogger) (dagstore.SectorAccessor, jsonrpc.ClientCloser, error) {
+func CreateSectorAccessor(ctx context.Context, storageApiInfo string, fullnodeApi v1api.FullNode, log *logging.ZapEventLogger, minioEndpoint string) (dagstore.SectorAccessor, jsonrpc.ClientCloser, error) {
 	sauth, err := StorageAuthWithURL(storageApiInfo)
 	if err != nil {
 		return nil, nil, fmt.Errorf("parsing storage API endpoint: %w", err)
@@ -139,6 +139,7 @@ func CreateSectorAccessor(ctx context.Context, storageApiInfo string, fullnodeAp
 	pp := sealer.NewPieceProvider(storage, storageService, storageService)
 	const maxCacheSize = 4096
 	newSectorAccessor := sectoraccessor.NewCachingSectorAccessor(maxCacheSize, 5*time.Minute)
-	sa := newSectorAccessor(dtypes.MinerAddress(maddr), storageService, pp, fullnodeApi)
+	sa := newSectorAccessor(dtypes.MinerAddress(maddr), storageService, pp, fullnodeApi, minioEndpoint)
+
 	return sa, storageCloser, nil
 }

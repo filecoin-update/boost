@@ -56,11 +56,11 @@ func (c *CachingSectorAccessor) IsUnsealed(ctx context.Context, sectorID abi.Sec
 	return isUnsealed, err
 }
 
-type SectorAccessorConstructor func(maddr dtypes.MinerAddress, secb sectorblocks.SectorBuilder, pp sealer.PieceProvider, full v1api.FullNode) dagstore.SectorAccessor
+type SectorAccessorConstructor func(maddr dtypes.MinerAddress, secb sectorblocks.SectorBuilder, pp sealer.PieceProvider, full v1api.FullNode, minioEndpoint string) dagstore.SectorAccessor
 
 func NewCachingSectorAccessor(maxCacheSize int, cacheExpire time.Duration) SectorAccessorConstructor {
-	return func(maddr dtypes.MinerAddress, secb sectorblocks.SectorBuilder, pp sealer.PieceProvider, full v1api.FullNode) dagstore.SectorAccessor {
-		sa := NewSectorAccessor(maddr, secb, pp, full)
+	return func(maddr dtypes.MinerAddress, secb sectorblocks.SectorBuilder, pp sealer.PieceProvider, full v1api.FullNode, minioEndpoint string) dagstore.SectorAccessor {
+		sa := NewSectorAccessor(maddr, secb, pp, full, minioEndpoint)
 		cache := ttlcache.NewCache()
 		_ = cache.SetTTL(cacheExpire)
 		cache.SetCacheSizeLimit(maxCacheSize)

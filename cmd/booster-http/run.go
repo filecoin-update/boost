@@ -105,6 +105,10 @@ var runCmd = &cli.Command{
 			Usage: "the endpoints for fetching one or more custom BadBits list instead of the default one at https://badbits.dwebops.pub/denylist.json",
 			Value: cli.NewStringSlice("https://badbits.dwebops.pub/denylist.json"),
 		},
+		&cli.StringFlag{
+			Name:  "minio-endpoint",
+			Usage: "minio endpoint, use download car",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		servePieces := cctx.Bool("serve-pieces")
@@ -157,8 +161,9 @@ var runCmd = &cli.Command{
 			log.Info("Tracing exporter enabled")
 		}
 
+		minioEndpoint := cctx.String("minio-endpoint")
 		// Create the sector accessor
-		sa, storageCloser, err := lib.CreateSectorAccessor(ctx, storageApiInfo, fullnodeApi, log)
+		sa, storageCloser, err := lib.CreateSectorAccessor(ctx, storageApiInfo, fullnodeApi, log, minioEndpoint)
 		if err != nil {
 			return err
 		}
