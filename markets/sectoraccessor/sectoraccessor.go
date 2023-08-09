@@ -90,7 +90,9 @@ func (sa *sectorAccessor) UnsealSectorAt(ctx context.Context, sectorID abi.Secto
 	}
 	url := fmt.Sprintf("%s/%s.car", sa.minioEndpoint, piece.Piece.PieceCID.String())
 
-	if r, err := g.Client().Get(ctx, url); err != nil {
+	c := g.Client()
+	c.SetHeader("Range", "bytes=0-1073741824")
+	if r, err := c.Get(ctx, url); err != nil {
 		return nil, err
 	} else {
 		defer func(r *gclient.Response) {
