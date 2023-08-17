@@ -167,24 +167,24 @@ func LinksFromIdentityCid(identityCid cid.Cid) ([]cid.Cid, error) {
 	return resultCids, err
 }
 
-func PieceInUnsealedSector(ctx context.Context, sa retrievalmarket.SectorAccessor, pieceInfo piecestore.PieceInfo) bool {
-	return true
-}
-
 //func PieceInUnsealedSector(ctx context.Context, sa retrievalmarket.SectorAccessor, pieceInfo piecestore.PieceInfo) bool {
-//	for _, di := range pieceInfo.Deals {
-//		isUnsealed, err := sa.IsUnsealed(ctx, di.SectorID, di.Offset.Unpadded(), di.Length.Unpadded())
-//		if err != nil {
-//			log.Errorf("failed to find out if sector %d is unsealed, err=%s", di.SectorID, err)
-//			continue
-//		}
-//		if isUnsealed {
-//			return true
-//		}
-//	}
-//
-//	return false
+//	return true
 //}
+
+func PieceInUnsealedSector(ctx context.Context, sa retrievalmarket.SectorAccessor, pieceInfo piecestore.PieceInfo) bool {
+	for _, di := range pieceInfo.Deals {
+		isUnsealed, err := sa.IsUnsealed(ctx, di.SectorID, di.Offset.Unpadded(), di.Length.Unpadded())
+		if err != nil {
+			log.Errorf("failed to find out if sector %d is unsealed, err=%s", di.SectorID, err)
+			continue
+		}
+		if isUnsealed {
+			return true
+		}
+	}
+
+	return false
+}
 
 // GetBestPieceInfoMatch will take a list of pieces, and an optional PieceCID from a client, and
 // will find the best piece to use for a retrieval. If a specific PieceCID is provided and that
