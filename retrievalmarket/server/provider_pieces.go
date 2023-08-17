@@ -30,7 +30,7 @@ const MaxIdentityCIDLinks = 32
 // If the Payload CID is an identity CID, then we use getCommonPiecesFromIdentityCidLinks to find
 // pieces containing all of the links within that identity CID.
 // Note that it is possible to receive a non-nil error as well as a non-zero length PieceInfo slice
-// as a return from this function. In that case, there was at least one error encountered querying
+// as a return from this function. in that case, there was at least one error encountered querying
 // the piece store.
 func GetAllPieceInfoForPayload(dagStore stores.DAGStoreWrapper, pieceStore piecestore.PieceStore, payloadCID cid.Cid) ([]piecestore.PieceInfo, error) {
 	// Get all pieces that contain the target block
@@ -168,25 +168,62 @@ func LinksFromIdentityCid(identityCid cid.Cid) ([]cid.Cid, error) {
 }
 
 func PieceInUnsealedSector(ctx context.Context, sa retrievalmarket.SectorAccessor, pieceInfo piecestore.PieceInfo) bool {
-	for _, di := range pieceInfo.Deals {
-		isUnsealed, err := sa.IsUnsealed(ctx, di.SectorID, di.Offset.Unpadded(), di.Length.Unpadded())
-		if err != nil {
-			log.Errorf("failed to find out if sector %d is unsealed, err=%s", di.SectorID, err)
-			continue
-		}
-		if isUnsealed {
-			return true
-		}
-	}
-
-	return false
+	return true
 }
+
+//func PieceInUnsealedSector(ctx context.Context, sa retrievalmarket.SectorAccessor, pieceInfo piecestore.PieceInfo) bool {
+//	for _, di := range pieceInfo.Deals {
+//		isUnsealed, err := sa.IsUnsealed(ctx, di.SectorID, di.Offset.Unpadded(), di.Length.Unpadded())
+//		if err != nil {
+//			log.Errorf("failed to find out if sector %d is unsealed, err=%s", di.SectorID, err)
+//			continue
+//		}
+//		if isUnsealed {
+//			return true
+//		}
+//	}
+//
+//	return false
+//}
 
 // GetBestPieceInfoMatch will take a list of pieces, and an optional PieceCID from a client, and
 // will find the best piece to use for a retrieval. If a specific PieceCID is provided and that
 // piece is included in the list of pieces, that is used. Otherwise the first unsealed piece is used
 // and if there are no unsealed pieces, the first sealed piece is used.
 // Failure to find a matching piece will result in a piecestore.PieceInfoUndefined being returned.
+//func GetBestPieceInfoMatch(ctx context.Context, sa retrievalmarket.SectorAccessor, pieces []piecestore.PieceInfo, clientPieceCID cid.Cid) (piecestore.PieceInfo, bool) {
+//	sealedPieceInfo := -1
+//	// For each piece that contains the target block
+//	for ii, pieceInfo := range pieces {
+//		if clientPieceCID.Defined() {
+//			// If client wants to retrieve the payload from a specific piece, just return that piece.
+//			if pieceInfo.PieceCID.Equals(clientPieceCID) {
+//				return pieceInfo, PieceInUnsealedSector(ctx, sa, pieceInfo)
+//			}
+//		} else {
+//			// If client doesn't have a preference for a particular piece, prefer the first piece for
+//			// which an unsealed sector exists.
+//			if PieceInUnsealedSector(ctx, sa, pieceInfo) {
+//				// The piece is in an unsealed sector, so just return it
+//				return pieceInfo, true
+//			}
+//
+//			if sealedPieceInfo == -1 {
+//				// The piece is not in an unsealed sector, so save it but keep checking other pieces to see
+//				// if there is one that is in an unsealed sector, otherwise use the first found sealed piece
+//				sealedPieceInfo = ii
+//			}
+//		}
+//	}
+//
+//	// Found a piece containing the target block, piece is in a sealed sector
+//	if sealedPieceInfo > -1 {
+//		return pieces[sealedPieceInfo], false
+//	}
+//
+//	return piecestore.PieceInfoUndefined, false
+//}
+
 func GetBestPieceInfoMatch(ctx context.Context, sa retrievalmarket.SectorAccessor, pieces []piecestore.PieceInfo, clientPieceCID cid.Cid) (piecestore.PieceInfo, bool) {
 	sealedPieceInfo := -1
 	// For each piece that contains the target block
